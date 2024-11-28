@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dustbin Monitor | Byte4ge Web Solutions</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .header button {
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .header button:hover {
+            background-color: #0056b3;
+        }
+
+        .active {
+            background-color: #0056b3;
+        }
+
+        .data-item h2 {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .data-item p {
+            font-size: 24px;
+            font-weight: bold;
+            color: #6eb7ff;
+        }
+
+        .dustbin-container {
+            position: relative;
+            width: 100px;
+            height: 200px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 20px auto;
+            background-color: #f8f9fa;
+        }
+
+        .dustbin-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: #28a745;
+            height: 0;
+            transition: height 0.5s ease-in-out;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dustbin-lid {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            width: 100px;
+            height: 30px;
+            background-color: #333;
+            border-radius: 8px 8px 0 0;
+            transform-origin: left bottom;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .dustbin-lid.open {
+            transform: rotate(-75deg);
+        }
+
+        .dustbin-level-text {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 style="color: #007bff;">Smart Dustbin Management System</h1>
+        <div class="header">
+            <button id="btnBin1" class="active">Dustbin 1</button>
+            <button id="btnBin2">Dustbin 2</button>
+            <button id="btnBin3">Dustbin 3</button>
+        </div>
+
+        <div class="data-container" id="dataContainer">
+            <div class="data-item">
+                <h2>CO2 Level</h2>
+                <p class="value" id="co2">Connecting To Server🙄</p>
+            </div>
+            <div class="data-item">
+                <h2>Dustbin Lid Status</h2>
+                <p class="value" id="lid-status">Connecting To Server🙄</p>
+            </div>
+            <div class="data-item">
+               
+                <div class="dustbin-container">
+                    <div class="dustbin-lid" id="dustbinLid"></div>
+                    <div class="dustbin-fill" id="dustbinFill"></div>
+                </div>
+                <p class="dustbin-level-text" id="dustbin-level">Connecting To Server🙄</p>
+                <h2>Dustbin Level</h2>
+            </div>
+
+           
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-app.js";
+        import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/9.20.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "Put_your_details_here",
+            authDomain: "Put_your_details_here",
+            databaseURL: "Put_your_details_here",
+            projectId: "Put_your_details_here",
+            storageBucket: "Put_your_details_here",
+            messagingSenderId: "Put_your_details_here",
+            appId: "Put_your_details_here",
+        };
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        let currentBin = 1; // Variable to keep track of the currently selected dustbin
+        let currentListeners = {}; // Object to hold listener references
+
+        function switchDustbin(binNumber) {
+            console.log(`Switching to Dustbin ${binNumber}`); // Debug log
+            // Detach previous listeners for the current dustbin
+            detachListeners(currentBin);
+
+            // Update active button styling
+            document.querySelectorAll(".header button").forEach((btn, index) => {
+                btn.classList.remove("active");
+                if (index === binNumber - 1) {
+                    btn.classList.add("active");
+                }
+            });
+
+            // Update Firebase reference paths
+            const pathPrefix = `/IistBiharData/SmtDstBin${binNumber}`;
+
+            // Update the data for the new dustbin
+            updateData(pathPrefix);
+
+            // Store the currently selected bin number
+            currentBin = binNumber; // Update the current bin
+        }
+
+        function detachListeners(binNumber) {
+            if (currentListeners.co2) {
+                off(ref(database, `/IistBiharData/SmtDstBin${binNumber}/co2`), "value", currentListeners.co2);
+            }
+            if (currentListeners.level) {
+                off(ref(database, `/IistBiharData/SmtDstBin${binNumber}/level`), "value", currentListeners.level);
+            }
+            if (currentListeners.status) {
+                off(ref(database, `/IistBiharData/SmtDstBin${binNumber}/status`), "value", currentListeners.status);
+            }
+
+            // Clear current listeners object
+            currentListeners = {};
+        }
+
+        function updateData(pathPrefix) {
+            const dataRef1 = ref(database, `${pathPrefix}/co2`);
+            const dataRef2 = ref(database, `${pathPrefix}/level`);
+            const dataRef3 = ref(database, `${pathPrefix}/status`);
+
+            currentListeners.co2 = onValue(dataRef1, (snapshot) => {
+                const co2Val = snapshot.val();
+                document.getElementById("co2").innerHTML = co2Val + " ppm";
+            });
+
+            currentListeners.level = onValue(dataRef2, (snapshot) => {
+                const level = snapshot.val();
+                document.getElementById("dustbin-level").innerHTML = level + "%";
+
+                const dustbinFill = document.getElementById("dustbinFill");
+                dustbinFill.style.height = level + "%"; // Update the height of the fill
+            });
+
+            currentListeners.status = onValue(dataRef3, (snapshot) => {
+                const lidStatus = snapshot.val();
+                document.getElementById("lid-status").innerHTML = lidStatus;
+
+                const dustbinLid = document.getElementById("dustbinLid");
+                if (lidStatus === "open") {
+                    dustbinLid.classList.add("open");
+                } else {
+                    dustbinLid.classList.remove("open");
+                }
+            });
+        }
+
+        // Add event listeners for buttons
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("btnBin1").addEventListener("click", () => switchDustbin(1));
+            document.getElementById("btnBin2").addEventListener("click", () => switchDustbin(2));
+            document.getElementById("btnBin3").addEventListener("click", () => switchDustbin(3));
+        });
+
+        // Initial call to set data for the first dustbin
+        switchDustbin(currentBin);
+    </script>
+</body>
+</html>
