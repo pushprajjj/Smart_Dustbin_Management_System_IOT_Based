@@ -12,12 +12,12 @@ String dustbin = "SmtDstBin1";
 
 
 // Wi-Fi credentials
-#define WIFI_SSID "44444444"
-#define WIFI_PASSWORD "44444444"
+#define WIFI_SSID "Your_ssid"
+#define WIFI_PASSWORD "Your_Password"
 
 
-#define API_KEY "AIzaSyAujt_zf6fCCLEPICef4_VAd7W4rSQshJE"
-#define DATABASE_URL "byte4genodemcu-default-rtdb.firebaseio.com"
+#define API_KEY "Your_Your_FirebaseRTb_apiKey"
+#define DATABASE_URL "Your_FirebaseRTb_url"
 
 
 
