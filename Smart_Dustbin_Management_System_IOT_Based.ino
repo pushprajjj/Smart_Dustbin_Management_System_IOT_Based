@@ -16,7 +16,7 @@ String dustbin = "SmtDstBin1";
 #define WIFI_PASSWORD "Your_Password"
 
 
-#define API_KEY "Your_Your_FirebaseRTb_apiKey"
+#define API_KEY "Your_FirebaseRTb_apiKey"
 #define DATABASE_URL "Your_FirebaseRTb_url"
 
 
